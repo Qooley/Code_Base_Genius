@@ -15,7 +15,7 @@ node DocGenie {
     has file_index: list[str] = [];
 
 
-
+    # Generate mermaid diagram from CCG
     def mermaid_from_ccg() -> str {
         classes = [root --> (`?Class)];
         fns = [root --> (`?Function)];
@@ -57,7 +57,7 @@ node DocGenie {
 can generate with entry {
     print("Generating markdown documentation...");
     
-    # --- Read actual directory tree content ---
+    # --- Read directory tree content ---
     let tree_txt = os.path.join(self.temp_dir, "file_tree.txt");
     let tree_content = "";
     if os.path.exists(tree_txt) {
@@ -66,7 +66,7 @@ can generate with entry {
         tree_content = "No file tree found.";
     }
 
-    # --- Build mermaid diagram safely ---
+    # --- Build mermaid diagram ---
     let mm = self.mermaid_from_ccg();
     
     # --- Assemble base markdown header ---
@@ -75,8 +75,7 @@ can generate with entry {
         base += "## Overview\n" + self.readme_summary + "\n\n";
     }
 
-    #base += "## Architecture Diagram\n```mermaid\n" + mm + "\n```\n\n";
-
+    
     let files_summary = "Files in repository:\n" + "\n".join(self.file_index);
     let md = self.compose_markdown(tree_content + "\n\n" + files_summary + "\n\n" + self.ccg_nodes);
 
@@ -94,7 +93,7 @@ can generate with entry {
     if not os.path.exists(output_folder) {
         os.makedirs(output_folder);
     }
-
+    # Save final markdown
     self.output_md = os.path.join(output_folder, "docs.md");
     with open(self.output_md, "w", encoding="utf-8") as f {
         f.write(final_md);
@@ -105,7 +104,7 @@ can generate with entry {
 }
 }
 sem DocGenie.compose_markdown = """
-You are a technical documentation generator for an AI + Jaclang + Python codebase.
+You are a technical documentation generator for an AI codebase.
 
 Inputs:
 - README summary describing purpose and goals.

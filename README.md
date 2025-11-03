@@ -45,7 +45,7 @@ graph TD
 ✅ LLM-based structural understanding of functions and class hierarchies
 ✅ Mermaid graph visualizations of code relationships
 ✅ Auto-generated Markdown documentation with Overview, Usage, Architecture & Future Work
-✅ FastAPI backend and Streamlit frontend integration
+✅ Jac-Cloud backend and Streamlit frontend integration
 ✅ Fully containerized and deployable with Jac Cloud runtime
 
 ```

@@ -1,20 +1,24 @@
-# agents/code_analyzer.jac
+# Analyzer for source code files using LLM to extract structure and relationships.
+
 import from byllm.llm { Model }
 import os;
 import re;
 
 glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False);
 
+#Support Node Types
 node File { has path: str; has lang: str = ""; }
 node Module { has name: str; has path: str = ""; }
 node Class { has name: str; has file: str = ""; }
 node Function { has name: str; has file: str = ""; }
 
+#Support Edge Types
 edge Contains {}
 edge Imports {}
 edge Inherits {}
 edge Calls {}
 
+#Main Analyzer Node
 node CodeAnalyzer {
     has repo_dir: str;
     has files: list[str] = [];

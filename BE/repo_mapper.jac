@@ -1,4 +1,5 @@
-#agents/repo_mapper.jac
+# Repo Mapper: Clones a Git repository, summarizes its README, and indexes its file structure.
+
 import from byllm.llm { Model }
 import from git { Repo }
 import os;
@@ -17,7 +18,7 @@ node RepoMapper {
     has file_index: list[str] = [];
     has file_tree_txt: str = "";
 
-    def summarize_readme(text: str) -> str by llm(method="ReAct");
+    def summarize_readme(text: str) -> str by llm(method="ReAct"); # Invoke LLM to summarize README
 
     can map with entry {
         (self.temp_dir, self.repo_path) = clone_repo(self.repo_url);

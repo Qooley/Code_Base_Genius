@@ -19,6 +19,8 @@ def repo_name_from_url(u: str) -> str {
     }
 }
 
+# Main supervisor walker for Codebase Genius
+
 walker codegenius_supervisor {
     obj __specs__ {
     static has auth: bool = False;
@@ -80,63 +82,63 @@ walker codegenius_supervisor {
         print("Entrypoints: " + str(len(self.priority)));
         print("Other files: " + str(len(self.others)));
 
-        analyzer = CodeAnalyzer(repo_dir=mapper.repo_path, files=self.priority + self.others);
-        root ++> analyzer;
-        analyzer.analyze(self);
+            analyzer = CodeAnalyzer(repo_dir=mapper.repo_path, files=self.priority + self.others);
+            root ++> analyzer;
+            analyzer.analyze(self);
 
-        let parsed_files = analyzer.parsed_count;
-        print("Code analysis complete. Files parsed (derived): " + str(parsed_files));
+            let parsed_files = analyzer.parsed_count;
+            print("Code analysis complete. Files parsed (derived): " + str(parsed_files));
 
-doc = DocGenie(
-    temp_dir=mapper.temp_dir,
-    repo_name=repo_name_from_url(self.repo_url),
-    readme_summary=mapper.readme_summary,
-    file_index=mapper.file_index,
-    ccg_nodes=analyzer.graph_view()  
-);
-root ++> doc;
-doc.generate(self);
+    doc = DocGenie(
+        temp_dir=mapper.temp_dir,
+        repo_name=repo_name_from_url(self.repo_url),
+        readme_summary=mapper.readme_summary,
+        file_index=mapper.file_index,
+        ccg_nodes=analyzer.graph_view()  
+    );
+    root ++> doc;
+    doc.generate(self);
 
-# Correct entry walker invocation
-root ++> doc;
-md_path = doc.output_md;
-
-if not md_path or not os.path.exists(md_path) {
-    print("No markdown path returned directly from DocGenie, checking output_md...");
+    # Entry walker invocation
+    root ++> doc;
     md_path = doc.output_md;
-}
 
-print("Documentation generated successfully!");
+    if not md_path or not os.path.exists(md_path) {
+        print("No markdown path returned directly from DocGenie, checking output_md...");
+        md_path = doc.output_md;
+    }
+
+    print("Documentation generated successfully!");
 
 
-md_text = "";
-public_dir = "generated_docs";
-if not os.path.exists(public_dir) {
-    os.makedirs(public_dir);
-}
+    md_text = "";
+    public_dir = "generated_docs";
+    if not os.path.exists(public_dir) {
+        os.makedirs(public_dir);
+    }
 
-if md_path and os.path.exists(md_path) {
-    md_text = open(md_path, "r", encoding="utf-8").read();
-    print("Markdown loaded, length: " + str(len(md_text)) + " chars");
+    if md_path and os.path.exists(md_path) {
+        md_text = open(md_path, "r", encoding="utf-8").read();
+        print("Markdown loaded, length: " + str(len(md_text)) + " chars");
 
-    let repo_slug = repo_name_from_url(self.repo_url);
-    let final_path = os.path.join(public_dir, repo_slug + ".md");
-    open(final_path, "w", encoding="utf-8").write(md_text);
-    print("Persisted for UI: " + final_path);
+        let repo_slug = repo_name_from_url(self.repo_url);
+        let final_path = os.path.join(public_dir, repo_slug + ".md");
+        open(final_path, "w", encoding="utf-8").write(md_text);
+        print("Persisted for UI: " + final_path);
 
-    md_path = final_path;
-} else {
-    print("Markdown file missing or not accessible at: " + str(md_path));
-}
+        md_path = final_path;
+    } else {
+        print("Markdown file missing or not accessible at: " + str(md_path));
+    }
 
-result = {
-    "status": "ok",
-    "repo": self.repo_url,
-    "files_cloned": len(mapper.file_index),
-    "files_parsed": parsed_files,
-    "output_md": md_path,
-    "markdown_text": md_text
-};
+    result = {
+        "status": "ok",
+        "repo": self.repo_url,
+        "files_cloned": len(mapper.file_index),
+        "files_parsed": parsed_files,
+        "output_md": md_path,
+        "markdown_text": md_text
+    };
 
 print("Report finalized successfully!");
 report result;
