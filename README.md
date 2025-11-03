@@ -199,7 +199,7 @@ Use the provided .gitignore to exclude sensitive or generated files.
 
 ## 📜 License
 
-This project is licensed under the OUK, Jaseci Labs
+This project is licensed under the OUK, Jaseci Labs, Marrion Kiprop
 
 ## 👩‍💻 Maintainer
 
