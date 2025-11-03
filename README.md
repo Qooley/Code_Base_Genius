@@ -101,6 +101,30 @@ Markdown documentation will be saved in:
 ```
 generated_docs/<repo_name>.md
 ```
+### 6️⃣ Launch the Streamlit Frontend
+Once the backend has produced documentation, you can visualize it via the Streamlit dashboard:
+```
+streamlit run FE/app.py
+```
+This launches an interactive UI where you can:
+
+Browse and read auto-generated documentation.
+
+Trigger new analyses directly from the frontend.
+
+Preview Mermaid diagrams and CCG structures.
+
+Frontend default URL:
+http://localhost:8501
+
+### 🧩 Full Workflow Summary
+
+Start backend → jac serve BE/main.jac
+
+Run analysis → curl ... or via Streamlit
+
+View documentation → either in BE/generated_docs/ or via Streamlit UI
+
 ## 🧰 Technical Stack
 
 | **Layer**                 | **Technologies**                   | **Description**                                                  |
