@@ -39,7 +39,7 @@ graph TD
 
 
 ## ⚙️ Features
-
+```
 ✅ Automatic cloning and indexing of any public GitHub repo
 ✅ Cross-language support (Python, JacLang, JavaScript, TypeScript, etc.)
 ✅ LLM-based structural understanding of functions and class hierarchies
@@ -48,8 +48,9 @@ graph TD
 ✅ FastAPI backend and Streamlit frontend integration
 ✅ Fully containerized and deployable with Jac Cloud runtime
 
-
+```
 ## 🧩 Repository Structure
+```
 Code_Base_Genius/
 │
 ├── BE/                      # Backend (Jac + Python Core)
@@ -71,7 +72,7 @@ Code_Base_Genius/
 ├── readMe
 ├── requirements.txt
 └── README.md
-
+```
 ## ⚡ Quick Start
 ### 1️⃣ Clone the repository
 ```
@@ -87,7 +88,7 @@ pip install -r requirements.txt
 jac serve main.jac
 ```
 This starts Codebase Genius locally and serves the jac-cloud backend at:
-👉 http://localhost:8000
+http://localhost:8000
 
 ### 4️⃣ Analyze a GitHub repository
 ```
@@ -166,7 +167,6 @@ This project is licensed under the OUK, Jaseci Labs
 
 Marrion Kiprop Cherop
 Founder — Agricore Technologies | Creator of Codebase Genius
-
 
 ---
 
