@@ -145,7 +145,7 @@ http://localhost:8501
 | ------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
 | **Language Runtime**      | JacLang 0.8+, Python 3.12          | Hybrid graph + imperative scripting environment for AI agents.   |
 | **LLM Integration**       | byLLM, LiteLLM, OpenAI GPT-4o-mini | LLM interface for reasoning and structured code summarization.   |
-| **Backend API**           | FastAPI, Uvicorn                   | Serves REST endpoints for repo analysis and document generation. |
+| **Backend API**           | Jac-Cloud                          | Serves REST endpoints for repo analysis and document generation. |
 | **Frontend (UI)**         | Streamlit                          | Dashboard for repository upload and documentation visualization. |
 | **Repository Management** | GitPython, gitdb                   | For cloning and indexing GitHub repositories.                    |
 | **Visualization**         | Mermaid-Py, Graphviz               | Generates architecture diagrams inside Markdown.                 |
@@ -199,7 +199,7 @@ Use the provided .gitignore to exclude sensitive or generated files.
 
 ## 📜 License
 
-This project is licensed under the OUK, Jaseci Labs, Marrion Kiprop
+This project is licensed under the Marrion Kiprop, OUK, Jaseci Labs. 
 
 ## 👩‍💻 Maintainer
 
