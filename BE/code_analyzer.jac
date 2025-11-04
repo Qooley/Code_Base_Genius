@@ -4,7 +4,7 @@ import from byllm.llm { Model }
 import os;
 import re;
 
-glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False);
+glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False, timeout=120);
 
 #Support Node Types
 node File { has path: str; has lang: str = ""; }
@@ -72,8 +72,11 @@ node CodeAnalyzer {
     }
 }
 
+    def build_ccg_llm_summary(path: str, content: str, lang: str) -> dict[str, str] by llm(method="Simple");
 
-    def build_ccg_llm(path: str, content: str, lang: str) -> dict[str, str] by llm(method="ReAct");
+    def build_ccg_llm(path: str, content: str, lang: str) -> dict[str, str] by llm(method="Simple");
+
+    
 
     def graph_view() -> str {
     classes = [root --> (`?Class)];
@@ -146,100 +149,203 @@ node CodeAnalyzer {
             }
         }
     }
+   can analyze with entry {
+    if not self.files {
+        print("No files to analyze.");
+        disengage;
+    }
 
-    can analyze with entry {
-        if not self.files {
-            print("No files to analyze.");
-            disengage;
+    let total = len(self.files);
+    print("Total files detected: " + str(total));
+
+    # --- Dynamic scan control ---
+    if total <= 30 {
+        print("Mode: Full analysis");
+        self.run_analysis(self.files, "deep");
+    } elif total <= 100 {
+        print("Mode: Balanced sampling (20 representative files)");
+        let sample = self.files[:30];
+        self.run_analysis(sample, "balanced");
+    } else {
+        print("Mode: Quick summary scan (10 representative files)");
+        let sample = self.files[:40];
+        self.run_analysis(sample, "summary");
+    }
+
+    print("Parsed files: " + str(self.parsed_count));
+}
+
+def run_analysis(files: list, mode: str) {
+    for p in files {
+        let lang = self.guess_lang(p);
+        let abs_path = os.path.join(self.repo_dir, p);
+
+        if not os.path.exists(abs_path) {
+            print("Skipping missing file: " + p);
+            continue;
         }
 
-        for p in self.files {
-    let lang = self.guess_lang(p);
+        # --- Handle Jupyter Notebooks (.ipynb) ---
+        if p.endswith(".ipynb") {
+            print("Notebook detected: " + p);
+            let content = open(abs_path, "r", encoding="utf-8", errors="ignore").read();
+            let nb_json = json.loads(raw);
 
-    # --- Supported languages list ---
-    let supported_langs = [
-        "python",
-        "jac",
-        "php",
-        "javascript",
-        "typescript",
-        "java",
-        "c",
-        "cpp",
-        "csharp",
-        "go",
-        "rust",
-        "ruby",
-        "swift",
-        "kotlin",
-        "r",
-        "scala",
-        "perl",
-        "shell",
-        "html",
-        "css"
-    ];
+            if "cells" in nb_json and len(nb_json["cells"]) > 0 {
+                let src_cells = [];
+                for cell in nb_json["cells"] {
+                    if cell.get("cell_type", "") == "code" and "source" in cell {
+                        src_cells.append("\n".join(cell["source"]));
+                    }
+                    if len(src_cells) >= 2 { break; }
+                }
 
-    if lang not in supported_langs {
-        print("Skipping unsupported file: " + p + " (" + lang + ")");
-        continue;
+                if len(src_cells) > 0 {
+                    content = "\n\n".join(src_cells)[:2000];
+                    print("Extracted " + str(len(src_cells)) + " code cell(s) from notebook.");
+                } else {
+                    print("No usable code in notebook: " + p);
+                    continue;
+                }
+            } else {
+                print("No cells in notebook: " + p);
+                continue;
+            }
+        } else {
+            let content = open(abs_path, "r", encoding="utf-8", errors="ignore").read();
+
+            # --- Truncate very large files ---
+            if len(content) > 2000 {
+                print("Truncating large file: " + p);
+                content = content[:2000];
+            }
+        }
+
+        # --- Supported languages ---
+        let supported_langs = [
+            "python", "jac", "php", "javascript", "typescript", "java",
+            "c", "cpp", "csharp", "go", "rust", "ruby", "swift", "kotlin",
+            "r", "scala", "perl", "shell", "html", "css"
+        ];
+
+        if lang not in supported_langs {
+            print("Skipping unsupported file: " + p + " (" + lang + ")");
+            continue;
+        }
+
+        print("Analyzing [" + lang + "]: " + p);
+
+        let result = self.build_ccg_llm(p, content, lang);
+
+        if type(result) == dict {
+            if "file" not in result {
+                result["file"] = p;
+            }
+            self.attach_ccg(result);
+            self.parsed_count += 1;
+        } else {
+            print("Fallback summary mode for: " + p);
+            let fallback = self.build_ccg_llm_summary(p, content, lang);
+            if type(fallback) == dict {
+                if "file" not in fallback {
+                    fallback["file"] = p;
+                }
+                self.attach_ccg(fallback);
+                self.parsed_count += 1;
+            } else {
+                print("Skipping file: " + p + " (no valid output)");
+            }
+        }
     }
-
-    let abs_path = os.path.join(self.repo_dir, p);
-    if not os.path.exists(abs_path) {
-        print("Failed to read " + abs_path);
-        continue;
-    }
-
-    print("Analyzing [" + lang + "]: " + p);
-    let content = open(abs_path, "r", encoding="utf-8").read();
-    let result = self.build_ccg_llm(p, content, lang);
-
-    if type(result) != dict {
-        print("Skipping unstructured LLM output for: " + p);
-        continue;
-    }
-
-    if "file" not in result {
-        result["file"] = p;
-    }
-
-    self.attach_ccg(result);
-    self.parsed_count += 1;
 }
-
-print("Parsed files: " + str(self.parsed_count));
-    }
 }
 sem CodeAnalyzer.build_ccg_llm = """
-Analyze the following source code from a file written in {lang}.
-Extract all of these structures and return them strictly as a JSON object.
+You are a **fast, lightweight code structure parser**.
 
-For Python (.py):
-- Detect all class definitions, including their base classes (if any).
-- Detect all function definitions with their names and argument lists.
-- Detect any function calls (who calls who).
+TASK:
+Read the provided {lang} source code and extract ONLY the first few *top-level* structural elements — up to:
+- 2 classes
+- 2 functions
+- 2 node
+- 2 walker
+- 2 edge
+Return STRICT JSON (no text or markdown).
 
-For Jac (.jac):
-- Detect all `node`, `edge`, and `walker` definitions.
-- Include any `can ... with entry` walker entry points.
-- Detect walker-to-walker or walker-to-node calls (`->`, `++>`, `<++`).
-
-Return a JSON object of this form:
+SCHEMA:
 {
   "file": "<path>",
-  "classes": [{"name": "ClassName", "bases": ["Base1", "Base2"]}],
+  "classes": [{"name": "ClassName", "bases": ["BaseClass"]}],
+  "functions": [{"name": "func_name", "args": ["arg1","arg2"], "calls": ["callee_func"]}],
   "nodes": [{"name": "NodeName"}],
   "walkers": [{"name": "WalkerName"}],
   "edges": [{"name": "EdgeName"}],
-  "functions": [{"name": "func_name", "args": ["a","b"]}],
   "calls": [{"from": "caller", "to": "callee"}]
 }
 
-Rules:
-- Do not include code text, comments, or explanations.
-- Return **only valid JSON**, no markdown, no prose.
-- If a category has no data, you may omit it or use an empty array.
-- Keep output short, consistent, and properly quoted.
+RULES:
+1. Always include all keys, even if empty.
+2. Only extract up to the limits above (skip the rest).
+3. Output MUST be valid JSON — no explanations or markdown.
+4. Names must match the code exactly (case-sensitive).
+5. "calls" should list only direct call-site relationships by name.
+6. If nothing is found, return the schema with empty lists.
+
+LANGUAGE RULES:
+
+[Python]
+- Detect top-level class and def declarations.
+- For each function/method, include args and calls if visible.
+- Ignore imports and decorators.
+- Stop after extracting 2 classes and 2 functions.
+
+[JacLang]
+- Detect node, walker, edge, and def declarations.
+- Include at most 1 node, 1 walker, 1 edge, and 2 functions.
+- Record direct calls between them ({"from":"caller","to":"callee"}).
+- Stop scanning after these top-level items are found.
+
+[Other languages]
+- Detect only up to 2 visible top-level declarations (classes or functions).
+
+EXAMPLES (abbreviated)
+
+Python input:
+class A: pass
+def z(): pass
+
+Jac input:
+node N {}
+walker W { can run with entry { greet(); } }
+def greet() {}
+""";
+
+sem CodeAnalyzer.build_ccg_llm_summary = """
+You are a **minimal code summarizer**.
+
+TASK:
+Read the provided {lang} source code and extract only the first structural hints:
+- 1 class
+- 1 function
+- 1 node
+- 1 walker
+- 1 edge
+Return STRICT JSON (no markdown, no text).
+
+SCHEMA:
+{
+  "file": "<path>",
+  "classes": [{"name": "ClassName"}],
+  "functions": [{"name": "func_name"}],
+  "nodes": [{"name": "NodeName"}],
+  "walkers": [{"name": "WalkerName"}],
+  "edges": [{"name": "EdgeName"}],
+  "calls": []
+}
+
+RULES:
+1. Always include every key, even if empty.
+2. Stop scanning after first elements are found.
+3. Output must be valid JSON — no extra text.
+4. Use exact identifiers (case-sensitive).
 """
 ;

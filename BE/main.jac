@@ -4,7 +4,7 @@ import from byllm.llm { Model }
 import from supervisor { codegenius_supervisor }
 import sys;
 
-glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False);
+glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False, timeout=120);
 
 with entry {
     load_dotenv();

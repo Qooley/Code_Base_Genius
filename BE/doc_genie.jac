@@ -4,7 +4,7 @@ import from code_analyzer { CodeAnalyzer, File, Class, Function }
 import from repo_utils { get_timestamp}
 import os;
 
-glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False);
+glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False, timeout=120);
 
 node DocGenie {
     has temp_dir: str;
@@ -52,7 +52,7 @@ node DocGenie {
         return "\n".join(lines);
     }
 
-    def compose_markdown(tree_txt_path: str) -> str by llm(method="ReAct");
+    def compose_markdown(tree_txt_path: str) -> str by llm(method="Simple");
 
 can generate with entry {
     print("Generating markdown documentation...");
@@ -124,7 +124,9 @@ Generate Markdown with these sections:
 4. **Detailed File & Folder Structure**
    - Include subfolders, each file, and a short purpose.
 5. **Component & Function Summary**
-   - Table with: *File*, *Type (Python/Jac)*, *Description*.
+   - Table with: *File*, *Type (Python/Jac)*, *Description*. e.g. 
+   e.g. def is_prime(n) or Class DatabaseConnector or Walker DataFetcher or Node UserNode or same for other languages like JavaScript, Java, etc.
+    Just do a few in main code files. 
 6.  *Elements of the code in .py, .jac, etc by naming and describing names of Classes, Functions, Nodes, Edges, Walkers)*,
 
 7. **Architecture & Relationships**

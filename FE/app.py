@@ -17,7 +17,7 @@ if st.button("Generate Documentation"):
     else:
         st.info("Processing... this may take a few seconds ⏳")
         try:
-            res = requests.post(API_URL, json={"repo_url": repo_url}, timeout=900)
+            res = requests.post(API_URL, json={"repo_url": repo_url}, timeout=50000)
             data = res.json()
 
             if "error" in data:

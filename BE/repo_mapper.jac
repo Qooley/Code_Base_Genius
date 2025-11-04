@@ -8,7 +8,8 @@ import tempfile;
 import shutil;
 import from repo_utils { clone_repo, collect_files, write_tree }
 
-glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False);
+glob llm = Model(model_name="openai/gpt-4o-mini", verbose=False, timeout=120);
+
 
 node RepoMapper {
     has repo_url: str;
@@ -18,7 +19,7 @@ node RepoMapper {
     has file_index: list[str] = [];
     has file_tree_txt: str = "";
 
-    def summarize_readme(text: str) -> str by llm(method="ReAct"); # Invoke LLM to summarize README
+    def summarize_readme(text: str) -> str by llm(method="Simple"); # Invoke LLM to summarize README
 
     can map with entry {
         (self.temp_dir, self.repo_path) = clone_repo(self.repo_url);
