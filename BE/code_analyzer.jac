@@ -179,7 +179,7 @@ if "edges" in ccg {
 }
 
     }
-   can analyze with entry {
+can analyze with entry {
     if not self.files {
         print("No files to analyze.");
         disengage;
@@ -187,26 +187,39 @@ if "edges" in ccg {
 
     let total = len(self.files);
     print("Total files detected: " + str(total));
-    if len(self.files) > 60 {
-    llm = Model(model_name="openai/gpt-3.5-turbo", verbose=False, timeout=90);
-}
 
-    # --- Dynamic scan control ---
-    if total <= 6 {
-        print("Mode: Full analysis");
-        self.run_analysis(self.files, "deep");
-    } elif total <= 100 {
-        print("Mode: Balanced sampling (20 representative files)");
-        let sample = self.files[:8];
-        self.run_analysis(sample, "balanced");
-    } else {
-        print("Mode: Quick summary scan (10 representative files)");
-        let sample = self.files[:10];
-        self.run_analysis(sample, "summary");
+    # --- Adjust LLM model based on repo size ---
+    if total > 60 {
+        llm = Model(model_name="openai/gpt-3.5-turbo", verbose=False, timeout=90);
     }
 
-    print("Parsed files: " + str(self.parsed_count));
+    # --- Adaptive sampling rules ---
+    let sample = [];
+
+    if total <= 10 {
+        print("Mode: Full analysis (all files)");
+        sample = self.files;
+    } elif total <= 100 {
+        print("Mode: Balanced sampling (~20% of files, up to 20 files)");
+        let count = int(min(20, total * 0.2));
+        sample = self.files[:count];
+    } elif total <= 500 {
+        print("Mode: Fast sampling (~10 files)");
+        sample = self.files[:10];
+    } else {
+        print("Mode: Quick summary scan (~5 files)");
+        sample = self.files[:5];
+    }
+
+    # --- Run analyzer only on sampled subset ---
+    self.run_analysis(sample, "sampled");
+
+    # --- Log + metrics ---
+    print(f"Analysis complete. Parsed files: {self.parsed_count}/{len(sample)}");
+    self.sampled_files = len(sample);
+    self.total_files = total;
 }
+
 
 def run_analysis(files: list, mode: str) {
     for p in files {
@@ -219,51 +232,55 @@ def run_analysis(files: list, mode: str) {
         }
 
         # --- Handle notebooks (.ipynb) ---
-if p.endswith(".ipynb") {
-    print("Notebook detected: " + p);
+        if p.endswith(".ipynb") {
+            print("Notebook detected: " + p);
+            let content = "";
+            let raw = open(abs_path, "r", encoding="utf-8", errors="ignore").read();
+            let raw_stripped = raw.lstrip();
 
-    let content = "";  # ensure declared for later use
-    let raw = open(abs_path, "r", encoding="utf-8", errors="ignore").read();
-    let raw_stripped = raw.lstrip();
-
-    if not raw_stripped {
-        print("Skipping empty or invalid notebook: " + p);
-        continue;
-    }
-
-    if raw_stripped.startswith("{") or raw_stripped.startswith("[") {
-        let nb_json = json.loads(raw_stripped);
-
-        if "cells" in nb_json and len(nb_json["cells"]) > 0 {
-            let src_cells = [];
-            for cell in nb_json["cells"] {
-                if cell.get("cell_type", "") == "code" and "source" in cell {
-                    src_cells.append("\n".join(cell["source"]));
-                }
-                if len(src_cells) >= 2 { break; }
-            }
-            if len(src_cells) > 0 {
-                content = "\n\n".join(src_cells)[:800];
-                print("Extracted " + str(len(src_cells)) + " code cell(s) from notebook.");
-            } else {
-                print("No usable code in notebook: " + p);
+            if not raw_stripped {
+                print("Skipping empty or invalid notebook: " + p);
                 continue;
             }
-        } else {
-            print("No cells in notebook: " + p);
-            continue;
-        }
-    } else {
-        print("Notebook file not valid JSON, skipping: " + p);
-        continue;
-    }
 
-    # From here on, 'content' contains up to 800 chars of code for LLM
-} else { print("Processing regular file: " + p);
-        let content = open(abs_path, "r", encoding="utf-8", errors="ignore").read()[:800];
-    }
-    # normal file path
-   
+            if raw_stripped.startswith("{") or raw_stripped.startswith("[") {
+                let nb_json = json.loads(raw_stripped);
+                if "cells" in nb_json and len(nb_json["cells"]) > 0 {
+                    let src_cells = [];
+                    for cell in nb_json["cells"] {
+                        if cell.get("cell_type", "") == "code" and "source" in cell {
+                            src_cells.append("\n".join(cell["source"]));
+                        }
+                        if len(src_cells) >= 2 { break; }
+                    }
+                    if len(src_cells) > 0 {
+                        content = "\n\n".join(src_cells);
+                    } else {
+                        print("No usable code in notebook: " + p);
+                        continue;
+                    }
+                } else {
+                    print("No cells in notebook: " + p);
+                    continue;
+                }
+            } else {
+                print("Notebook file not valid JSON, skipping: " + p);
+                continue;
+            }
+
+        } else {
+            print("Processing regular file: " + p);
+            let content = open(abs_path, "r", encoding="utf-8", errors="ignore").read();
+        }
+
+        # --- Truncation for large files ---
+        let truncate_limit = 400;
+        if len(content) > truncate_limit {
+            print(f"Truncating {p} to first {truncate_limit} characters");
+            content = content[:truncate_limit];
+        }
+
+        # --- Supported language filter ---
         let supported_langs = [
             "python", "jac", "php", "javascript", "typescript", "java",
             "c", "cpp", "csharp", "go", "rust", "ruby", "swift", "kotlin",
@@ -277,6 +294,7 @@ if p.endswith(".ipynb") {
 
         print("Analyzing [" + lang + "]: " + p);
 
+        # --- LLM call + fallback ---
         let result = self.build_ccg_llm(p, content, lang);
 
         if type(result) == dict {
@@ -295,9 +313,7 @@ if p.endswith(".ipynb") {
             }
         }
     }
-
 }
-
 }
 
 sem CodeAnalyzer.build_ccg_llm = """
