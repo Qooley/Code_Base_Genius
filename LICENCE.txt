@@ -1,0 +1,18 @@
+Educational Use License
+
+Copyright (c) 2025 Marrion Kiprop
+
+This project, Code_Base_Genius, was developed by Marrion Kiprop
+for educational, academic, and research purposes.
+
+Permission is hereby granted to use, copy, and study this code and its
+documentation for non-commercial educational or research use only.
+
+Restrictions:
+- Commercial use, redistribution, or modification outside the context of
+  educational or research purposes requires prior written consent from the author.
+- No warranty is provided. Use at your own risk.
+
+By accessing or using this repository, you agree to these terms.
+
+
